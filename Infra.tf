@@ -93,6 +93,16 @@ resource "aws_instance" "my-ec2" {
     instance_type = "t3.micro"
     vpc_security_group_ids = [aws_security_group.My-sg.id]
     subnet_id = aws_subnet.my-public-subnet.id
+    user_data = <<-EOF
+      #!/bin/bash
+      apt-get update -y
+      apt-get install -y git
+      cd /home/ubuntu
+      git clone https://github.com/adarshadhal/Scripts.git
+      cd Scripts
+      chmod +x user.sh
+      ./user.sh
+    EOF
     tags = {
         Name = "My-ec2-1"
         }
