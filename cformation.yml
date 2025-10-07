@@ -1,0 +1,17 @@
+Resources:
+  MyEC2Instance: 
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: "ap-south-2a"
+      ImageId: "ami-0bd4cda58efa33d23"
+      InstanceType: "t3.micro"
+      KeyName: "Adarsha2581"
+      SecurityGroupIds:
+       - "sg-0ad74da73c3ab09cf"
+      Tags:
+      - Key: "Name"
+        Value: "my-demo-Ec2"
+      - Key: "instance type"
+        Value: "dev"
+  
+
