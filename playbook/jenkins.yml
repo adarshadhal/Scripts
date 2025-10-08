@@ -1,28 +1,50 @@
-# Jenkins Installation 
-- name: Install Jenkins on Ubuntu
+- name: Install Jenkins on Ubuntu (official method)
   hosts: all
   become: yes
+
   tasks:
-      apt:
-        name: openjdk-11-jdk
-        state: present
+    - name: Ensure /etc/apt/keyrings directory exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
 
-    - name: Add Jenkins apt repository key
-      apt_key:
-        state: present
+    - name: Download Jenkins official GPG key
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+        mode: '0644'
 
-    - name: Add Jenkins repository
+    - name: Add Jenkins apt repository with signed-by option
       apt_repository:
-        repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
+        repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        filename: jenkins
         state: present
 
-    - name: Install Jenkins
+    - name: Update apt cache
       apt:
-        name: jenkins
+        update_cache: yes
+
+    - name: Install OpenJDK 17
+      apt:
+        name: openjdk-17-jdk
         state: present
         update_cache: yes
 
-    - name: Ensure Jenkins service is started and enabled
+    - name: Install Jenkins package
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Ensure JAVA_HOME is set for Jenkins
+      lineinfile:
+        path: /etc/default/jenkins
+        regexp: '^JAVA_HOME='
+        line: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
+        create: yes
+        backup: yes
+
+    - name: Ensure Jenkins service is enabled and started
       systemd:
         name: jenkins
         state: started
