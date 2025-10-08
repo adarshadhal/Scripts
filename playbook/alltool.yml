@@ -29,7 +29,7 @@
         path: /etc/profile.d/maven.sh
         line: 'export PATH=$PATH:/opt/maven/bin'
         create: yes
----
+
 #Docker Installation
 - name: Install Docker on Ubuntu
   hosts: all
@@ -73,7 +73,6 @@
     - name: Update apt cache
       apt:
         update_cache: yes
----
 # Jenkins Installation 
 - name: Install Jenkins on Ubuntu
   hosts: all
@@ -85,7 +84,6 @@
         state: present
 
     - name: Add Jenkins apt repository key
-      apt_key:
         url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
         state: present
 
@@ -94,7 +92,6 @@
         repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
         state: present
 
-    - name: Install Jenkins
       apt:
         name: jenkins
         state: present
@@ -105,6 +102,3 @@
         name: jenkins
         state: started
         enabled: yes
-
-
-

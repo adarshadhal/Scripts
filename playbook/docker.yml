@@ -1,4 +1,3 @@
----
 #Docker Installation
 - name: Install Docker on Ubuntu
   hosts: all

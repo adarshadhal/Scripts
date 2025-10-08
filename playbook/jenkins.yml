@@ -1,15 +1,14 @@
+# Jenkins Installation 
 - name: Install Jenkins on Ubuntu
   hosts: all
   become: yes
   tasks:
-    - name: Install Java (required by Jenkins)
       apt:
         name: openjdk-11-jdk
         state: present
 
     - name: Add Jenkins apt repository key
       apt_key:
-        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
         state: present
 
     - name: Add Jenkins repository
@@ -28,6 +27,3 @@
         name: jenkins
         state: started
         enabled: yes
-
-
-
