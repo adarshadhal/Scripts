@@ -1,0 +1,110 @@
+# Maven Installation
+- name: Install Maven from binaries
+  hosts: web
+  become: yes
+  tasks:
+    - name: Download Maven tarball
+      ansible.builtin.get_url:
+        url: https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
+        dest: /opt/apache-maven-3.9.11-bin.tar.gz
+        mode: '0755'
+
+    - name: Extract Maven
+      ansible.builtin.unarchive:
+        src: /opt/apache-maven-3.9.11-bin.tar.gz
+        dest: /opt/
+        remote_src: yes
+
+    - name: Remove tarball
+      ansible.builtin.file:
+        path: /opt/apache-maven-3.9.11-bin.tar.gz
+        state: absent
+
+    - name: Create symbolic link for Maven
+      ansible.builtin.command:
+        cmd: ln -sfn /opt/apache-maven-3.9.11 /opt/maven
+
+    - name: Add Maven to PATH
+      ansible.builtin.lineinfile:
+        path: /etc/profile.d/maven.sh
+        line: 'export PATH=$PATH:/opt/maven/bin'
+        create: yes
+---
+#Docker Installation
+- name: Install Docker on Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+        state: present
+
+    - name: Install Docker Engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker service is started and enabled
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+---
+# Jenkins Installation 
+- name: Install Jenkins on Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Java (required by Jenkins)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
+    - name: Add Jenkins apt repository key
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+        state: present
+
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
+        state: present
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+
+    - name: Ensure Jenkins service is started and enabled
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+
+
