@@ -100,8 +100,8 @@ resource "aws_instance" "my-ec2" {
       cd /home/ubuntu
       git clone https://github.com/adarshadhal/Scripts.git
       cd Scripts
-      chmod +x user.sh
-      ./user.sh
+      bash User.sh
+      rm -r Scripts
     EOF
     tags = {
         Name = "My-ec2-1"
