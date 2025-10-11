@@ -1,0 +1,36 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+# Update and install git if missing
+apt-get update -y
+apt-get install -y git
+
+# Directory where you clone
+TARGET_DIR="/home/ubuntu/Scripts"
+
+# If already exists, remove or update
+if [ -d "$TARGET_DIR" ]; then
+  echo "Removing existing $TARGET_DIR"
+  rm -rf "$TARGET_DIR"
+fi
+
+cd /home/ubuntu
+
+# Clone repo
+git clone https://github.com/adarshadhal/Scripts.git
+
+cd Scripts
+
+# Option A: run User.sh as root
+bash User.sh
+
+# Option B: run User.sh as ubuntu user (if you want)
+# sudo -u ubuntu bash User.sh
+
+# Cleanup
+cd /home/ubuntu
+rm -rf Scripts
+
+echo "Done."
+
