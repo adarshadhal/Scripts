@@ -1,0 +1,21 @@
+image:
+  repository: adarshadhal/sampleaap
+  tag: 64
+  pullPolicy: IfNotPresent
+appMessage: "Shipping Service"
+
+service:
+  port: 8080
+  type: NodePort
+
+serviceAccount:
+  create: true
+
+ingress:
+  enabled: false
+
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: false
