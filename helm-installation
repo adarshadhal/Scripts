@@ -10,3 +10,7 @@ sudo apt-get install helm
 # Step-2 
 # Add repo
 helm repo add bitnami https://charts.bitnami.com/bitnami
+
+
+# Step-3 install what chart you need
+helm install my-release bitnami/<chart>
