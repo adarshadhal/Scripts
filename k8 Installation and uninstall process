@@ -1,0 +1,37 @@
+un install process
+# 1. Reset kubeadm (removes cluster config, certs, etc.)
+sudo kubeadm reset --force
+
+# 2. Remove Kubernetes packages
+sudo apt-mark unhold kubelet kubeadm kubectl
+sudo apt purge -y kubelet kubeadm kubectl
+sudo apt autoremove -y
+
+# 3. Remove container runtime
+sudo systemctl stop containerd
+sudo apt purge -y containerd containerd.io docker.io docker-ce docker-ce-cli containerd.io
+sudo rm -rf /etc/containerd /var/lib/containerd
+
+# 4. Cleanup Kubernetes directories
+sudo rm -rf ~/.kube/
+sudo rm -rf /etc/kubernetes/
+sudo rm -rf /var/lib/etcd
+sudo rm -rf /var/lib/kubelet
+
+# 5. Remove CNI networking
+sudo rm -rf /etc/cni/net.d
+sudo ip link delete cni0
+sudo ip link delete flannel.1 || true
+
+# 6. Re-enable swap (if disabled)
+sudo swapoff -a
+sudo sed -i '/ swap / s/^#*/#/' /etc/fstab
+
+# 7. Reset IP forwarding
+sudo sysctl -w net.ipv4.ip_forward=0
+sudo sed -i '/net.ipv4.ip_forward/s/^net.ipv4.ip_forward=.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
+
+# 8. Remove APT repo
+sudo rm -f /etc/apt/sources.list.d/kubernetes.list
+sudo rm -f /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+sudo apt update
