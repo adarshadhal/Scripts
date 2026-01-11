@@ -1,81 +1,54 @@
-master node set-up only
+STEP 1: ALL NODES - System Prep + Docker (run first)
+apt update && apt upgrade -y
+swapoff -a && sed -i '/ swap / s/^/#/' /etc/fstab
+apt install -y docker.io
+systemctl enable --now docker
+docker run hello-world  # TEST: Must work
 
-## Install Docker
-sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installDocker.sh -P /tmp
-sudo chmod 755 /tmp/installDocker.sh
-sudo bash /tmp/installDocker.sh
-sudo systemctl restart docker.service
+STEP 2: ALL NODES - Install cri-dockerd v0.3.12 (FIXED VERSION)
 
-## Install CRI-Docker
-sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installCRIDockerd.sh -P /tmp
-sudo chmod 755 /tmp/installCRIDockerd.sh
-sudo bash /tmp/installCRIDockerd.sh
-sudo systemctl restart cri-docker.service
-
-## Install kubeadm,kubelet,kubectl
-sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installK8S.sh -P /tmp
-sudo chmod 755 /tmp/installK8S.sh
-sudo bash /tmp/installK8S.sh
-
-# Validate 
-
-   docker -v
-   cri-dockerd --version
-   kubeadm version -o short
-   kubelet --version
-   kubectl version --client
-
-## Initialize kubernetes Master Node
- 
-   sudo kubeadm init --cri-socket unix:///var/run/cri-dockerd.sock --ignore-preflight-errors=all
-
-   sudo mkdir -p $HOME/.kube
-   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-   sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-   ## install networking driver -- Weave/flannel/canal/calico etc... 
-
-   ## below installs calico networking driver 
-    
-   kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml
-
-   # Validate:  kubectl get nodes
+CRIVERSION="0.3.12"
+wget https://github.com/Mirantis/cri-dockerd/releases/download/v${CRIVERSION}/cri-dockerd-${CRIVERSION}.amd64.tgz
+tar xzf cri-dockerd-${CRIVERSION}.amd64.tgz
+mv cri-dockerd/cri-dockerd /usr/local/bin/
+chmod +x /usr/local/bin/cri-dockerd
+cri-dockerd --version  # MUST show: v0.3.12
+rm -rf cri-dockerd* *.tgz
 
 
-Worker Node
+STEP 3: ALL NODES - cri-dockerd Service
 
-## Install Docker
-sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installDocker.sh -P /tmp
-sudo chmod 755 /tmp/installDocker.sh
-sudo bash /tmp/installDocker.sh
-sudo systemctl restart docker.service
+wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/v0.3.12/packaging/systemd/cri-docker.service -O /etc/systemd/system/cri-docker.service
+wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/v0.3.12/packaging/systemd/cri-docker.socket -O /etc/systemd/system/cri-docker.socket
+sed -i 's|/usr/bin/cri-dockerd|/usr/local/bin/cri-dockerd|' /etc/systemd/system/cri-docker.service
+systemctl daemon-reload
+systemctl enable --now cri-docker.socket cri-docker.service
+ls /var/run/cri-dockerd.sock  # MUST exist
 
-## Install CRI-Docker
-sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installCRIDockerd.sh -P /tmp
-sudo chmod 755 /tmp/installCRIDockerd.sh
-sudo bash /tmp/installCRIDockerd.sh
-sudo systemctl restart cri-docker.service
+STEP 4: ALL NODES - Kubernetes Tools
 
-## Install kubeadm,kubelet,kubectl
-sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installK8S.sh -P /tmp
-sudo chmod 755 /tmp/installK8S.sh
-sudo bash /tmp/installK8S.sh
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+apt update
+apt install -y kubelet=1.35.* kubeadm=1.35.* kubectl=1.35.*
+apt-mark hold kubelet kubeadm kubectl
 
-to enable network features on worker nodes
+STEP 5: MASTER ONLY - Initialize
 
-sudo modprobe br_netfilter
-sudo echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
-sudo echo 1 > /proc/sys/net/ipv4/ip_forward
+sudo kubeadm init --cri-socket unix:///var/run/cri-dockerd.sock --ignore-preflight-errors=all
+or
+kubeadm init --cri-socket=unix:///var/run/cri-dockerd.sock --pod-network-cidr=10.244.0.0/16
+
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+
+STEP 6:  MASTER - Deploy Network
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml
 
 
-# Validate 
+STEP 7: WORKER NODES ONLY - Join
 
-   docker -v
-   cri-dockerd --version
-   kubeadm version -o short
-   kubelet --version
-   kubectl version --client
-   
 ## Run Below on Master Node to get join token 
 
 kubeadm token create --print-join-command 
@@ -91,40 +64,4 @@ kubeadm token create --print-join-command
 
 
 
-un install process
-# 1. Reset kubeadm (removes cluster config, certs, etc.)
-sudo kubeadm reset --force
 
-# 2. Remove Kubernetes packages
-sudo apt-mark unhold kubelet kubeadm kubectl
-sudo apt purge -y kubelet kubeadm kubectl
-sudo apt autoremove -y
-
-# 3. Remove container runtime
-sudo systemctl stop containerd
-sudo apt purge -y containerd containerd.io docker.io docker-ce docker-ce-cli containerd.io
-sudo rm -rf /etc/containerd /var/lib/containerd
-
-# 4. Cleanup Kubernetes directories
-sudo rm -rf ~/.kube/
-sudo rm -rf /etc/kubernetes/
-sudo rm -rf /var/lib/etcd
-sudo rm -rf /var/lib/kubelet
-
-# 5. Remove CNI networking
-sudo rm -rf /etc/cni/net.d
-sudo ip link delete cni0
-sudo ip link delete flannel.1 || true
-
-# 6. Re-enable swap (if disabled)
-sudo swapoff -a
-sudo sed -i '/ swap / s/^#*/#/' /etc/fstab
-
-# 7. Reset IP forwarding
-sudo sysctl -w net.ipv4.ip_forward=0
-sudo sed -i '/net.ipv4.ip_forward/s/^net.ipv4.ip_forward=.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
-
-# 8. Remove APT repo
-sudo rm -f /etc/apt/sources.list.d/kubernetes.list
-sudo rm -f /etc/apt/keyrings/kubernetes-archive-keyring.gpg
-sudo apt update
