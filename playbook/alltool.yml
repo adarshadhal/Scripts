@@ -5,24 +5,24 @@
   tasks:
     - name: Download Maven tarball
       ansible.builtin.get_url:
-        url: https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
-        dest: /opt/apache-maven-3.9.11-bin.tar.gz
+        url: https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.tar.gz
+        dest: /opt/apache-maven-3.9.12-bin.tar.gz
         mode: '0755'
 
     - name: Extract Maven
       ansible.builtin.unarchive:
-        src: /opt/apache-maven-3.9.11-bin.tar.gz
+        src: /opt/apache-maven-3.9.12-bin.tar.gz
         dest: /opt/
         remote_src: yes
 
     - name: Remove tarball
       ansible.builtin.file:
-        path: /opt/apache-maven-3.9.11-bin.tar.gz
+        path: /opt/apache-maven-3.9.12-bin.tar.gz
         state: absent
 
     - name: Create symbolic link for Maven
       ansible.builtin.command:
-        cmd: ln -sfn /opt/apache-maven-3.9.11 /opt/maven
+        cmd: ln -sfn /opt/apache-maven-3.9.12 /opt/maven
 
     - name: Add Maven to PATH
       ansible.builtin.lineinfile:
